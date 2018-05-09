@@ -343,6 +343,9 @@ type APIDefinition struct {
 	JWTDisableIssuedAtValidation  bool                 `bson:"jwt_disable_issued_at_validation" json:"jwt_disable_issued_at_validation"`
 	JWTDisableExpiresAtValidation bool                 `bson:"jwt_disable_expires_at_validation" json:"jwt_disable_expires_at_validation"`
 	JWTDisableNotBeforeValidation bool                 `bson:"jwt_disable_not_before_validation" json:"jwt_disable_not_before_validation"`
+	JWTSkewIssuedAtValidation     int64                `bson:"jwt_skew_issued_at_validation" json:"jwt_skew_issued_at_validation"`
+	JWTSkewExpiresAtValidation    int64                `bson:"jwt_skew_expires_at_validation" json:"jwt_disable_expires_at_validation"`
+	JWTSkewNotBeforeValidation    int64                `bson:"jwt_skew_not_before_validation" json:"jwt_skew_not_before_validation"`
 	NotificationsDetails          NotificationsManager `bson:"notifications" json:"notifications"`
 	EnableSignatureChecking       bool                 `bson:"enable_signature_checking" json:"enable_signature_checking"`
 	HmacAllowedClockSkew          float64              `bson:"hmac_allowed_clock_skew" json:"hmac_allowed_clock_skew"`
