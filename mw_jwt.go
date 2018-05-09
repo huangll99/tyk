@@ -388,7 +388,7 @@ func (k *JWTMiddleware) ProcessRequest(w http.ResponseWriter, r *http.Request, _
 
 	// enable bearer token format
 	rawJWT = stripBearer(rawJWT)
-
+	fmt.Errorf("stripBearer\n")
 	// Use own validation logic, see below
 	parser := &jwt.Parser{SkipClaimsValidation: true}
 
@@ -432,7 +432,7 @@ func (k *JWTMiddleware) ProcessRequest(w http.ResponseWriter, r *http.Request, _
 
 		return val, nil
 	})
-
+	fmt.Errorf("validateJWTClaims")
 	if err == nil && token.Valid {
 		if jwtErr := k.validateJWTClaims(token.Claims.(jwt.MapClaims)); jwtErr != nil {
 			return errors.New("Key not authorized: " + jwtErr.Error()), 401
@@ -467,19 +467,48 @@ func (k *JWTMiddleware) validateJWTClaims(c jwt.MapClaims) *jwt.ValidationError 
 
 	// The claims below are optional, by default, so if they are set to the
 	// default value in Go, let's not fail the verification for them.
-	if !k.Spec.JWTDisableExpiresAtValidation && c.VerifyExpiresAt(now, false) == false {
-		vErr.Inner = errors.New("Token is expired")
-		vErr.Errors |= jwt.ValidationErrorExpired
+	fmt.Errorf("hhhhhhhhhhh\n")
+	if k.Spec.JWTDisableExpiresAtValidation {
+		vErr.Errors |= jwt.ValidationErrorId
+		return vErr
+	}
+	if !k.Spec.JWTDisableExpiresAtValidation {
+		if c.VerifyExpiresAt(now, false) == false {
+			if k.Spec.JWTSkewExpiresAtValidation > 0 {
+
+				skewedNow := k.Spec.JWTSkewExpiresAtValidation + now
+				if c.VerifyExpiresAt(skewedNow, false) == false {
+					vErr.Inner = errors.New("Token is expired")
+					vErr.Errors |= jwt.ValidationErrorExpired
+				}
+			} else {
+			 	fmt.Errorf("k.Spec.JWTSkewExpiresAtValidation = %d ", k.Spec.JWTSkewExpiresAtValidation)
+			}
+		}
+	}
+	fmt.Errorf("true")
+	if !k.Spec.JWTDisableIssuedAtValidation {
+		if c.VerifyIssuedAt(now, false) == false {
+			if k.Spec.JWTSkewIssuedAtValidation > 0 {
+				skewedNow := now - k.Spec.JWTSkewIssuedAtValidation
+				if c.VerifyIssuedAt(skewedNow, false) == false {
+					vErr.Inner = errors.New("Token used before issued")
+					vErr.Errors |= jwt.ValidationErrorIssuedAt
+				}
+			}
+		}
 	}
 
-	if !k.Spec.JWTDisableIssuedAtValidation && c.VerifyIssuedAt(now, false) == false {
-		vErr.Inner = fmt.Errorf("Token used before issued")
-		vErr.Errors |= jwt.ValidationErrorIssuedAt
-	}
-
-	if !k.Spec.JWTDisableNotBeforeValidation && c.VerifyNotBefore(now, false) == false {
-		vErr.Inner = fmt.Errorf("token is not valid yet")
-		vErr.Errors |= jwt.ValidationErrorNotValidYet
+	if !k.Spec.JWTDisableNotBeforeValidation {
+		if c.VerifyNotBefore(now, false) == false {
+			if k.Spec.JWTSkewNotBeforeValidation > 0 {
+				skewedNow := k.Spec.JWTSkewNotBeforeValidation + now
+				if c.VerifyNotBefore(skewedNow, false) == false {
+					vErr.Inner = errors.New("token is not valid yet")
+					vErr.Errors |= jwt.ValidationErrorNotValidYet
+				}
+			}
+		}
 	}
 
 	if vErr.Errors == 0 {

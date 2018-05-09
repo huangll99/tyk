@@ -498,7 +498,7 @@ func TestJWTSessionRSAWithRawSourceInvalidPolicyID(t *testing.T) {
 	})
 }
 
-func TestJWTSessionInvalidClaims(t *testing.T) {
+func TestJWTSessionExpiresAtValidation(t *testing.T) {
 	ts := newTykTestServer()
 	defer ts.Close()
 
@@ -515,7 +515,8 @@ func TestJWTSessionInvalidClaims(t *testing.T) {
 	pID := createPolicy()
 
 	t.Run("Fail if token expired", func(t *testing.T) {
-		spec.JWTDisableExpiresAtValidation = false
+		 spec.JWTDisableExpiresAtValidation = true // should be the default
+		 spec.JWTSkewExpiresAtValidation = 0  // should be the default
 		loadAPI(spec)
 
 		jwtToken := createJWKToken(func(t *jwt.Token) {
@@ -524,12 +525,13 @@ func TestJWTSessionInvalidClaims(t *testing.T) {
 			t.Claims.(jwt.MapClaims)["exp"] = time.Now().Add(-time.Hour * 72).Unix()
 		})
 		authHeaders := map[string]string{"authorization": jwtToken}
-
+		fmt.Printf("\nspec.JWTSkewExpiresAtValidation %d\n\n", spec.JWTSkewExpiresAtValidation)
+		fmt.Printf("authHeaders %#v\n\n", authHeaders)
 		ts.Run(t, test.TestCase{
 			Headers: authHeaders, Code: 401, BodyMatch: "Key not authorized: Token is expired",
 		})
 	})
-
+/*
 	t.Run("Pass if token expired and validation disabled", func(t *testing.T) {
 		spec.JWTDisableExpiresAtValidation = true
 		loadAPI(spec)
@@ -545,6 +547,40 @@ func TestJWTSessionInvalidClaims(t *testing.T) {
 			Headers: authHeaders, Code: 200,
 		})
 	})
+
+	t.Run("Pass if validation is enabled and token skew is set up to 5 minutes", func(t *testing.T) {
+		spec.JWTDisableExpiresAtValidation = true
+		spec.JWTSkewExpiresAtValidation = 300
+		loadAPI(spec)
+
+		jwtToken := createJWKToken(func(t *jwt.Token) {
+			t.Claims.(jwt.MapClaims)["policy_id"] = pID
+			t.Claims.(jwt.MapClaims)["user_id"] = "user"
+			t.Claims.(jwt.MapClaims)["exp"] = time.Now().Add(time.Minute * 5).Unix()
+		})
+		authHeaders := map[string]string{"authorization": jwtToken}
+
+		ts.Run(t, test.TestCase{
+			Headers: authHeaders, Code: 200,
+		})
+	})
+
+	t.Run("Fails if validation is enabled and token skew is set up to less that 5 minutes", func(t *testing.T) {
+		spec.JWTDisableExpiresAtValidation = true
+		spec.JWTSkewExpiresAtValidation = 299
+		loadAPI(spec)
+
+		jwtToken := createJWKToken(func(t *jwt.Token) {
+			t.Claims.(jwt.MapClaims)["policy_id"] = pID
+			t.Claims.(jwt.MapClaims)["user_id"] = "user"
+			t.Claims.(jwt.MapClaims)["exp"] = time.Now().Add(time.Minute * 5).Unix()
+		})
+		authHeaders := map[string]string{"authorization": jwtToken}
+
+		ts.Run(t, test.TestCase{
+			Headers: authHeaders, Code: 401,
+		})
+	})*/
 }
 
 func TestJWTExistingSessionRSAWithRawSourceInvalidPolicyID(t *testing.T) {
