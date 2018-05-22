@@ -467,7 +467,6 @@ func (k *JWTMiddleware) validateJWTClaims(c jwt.MapClaims) *jwt.ValidationError 
 
 	// The claims below are optional, by default, so if they are set to the
 	// default value in Go, let's not fail the verification for them.
-	fmt.Errorf("hhhhhhhhhhh\n")
 	if k.Spec.JWTDisableExpiresAtValidation {
 		vErr.Errors |= jwt.ValidationErrorId
 		return vErr
@@ -481,8 +480,6 @@ func (k *JWTMiddleware) validateJWTClaims(c jwt.MapClaims) *jwt.ValidationError 
 					vErr.Inner = errors.New("Token is expired")
 					vErr.Errors |= jwt.ValidationErrorExpired
 				}
-			} else {
-				fmt.Errorf("k.Spec.JWTSkewExpiresAtValidation = %d ", k.Spec.JWTSkewExpiresAtValidation)
 			}
 		}
 	}
